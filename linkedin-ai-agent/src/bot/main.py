@@ -44,6 +44,17 @@ from bot.commands.auth import (
     authstatus_command,
     deauth_command,
 )
+from bot.commands.repos import (
+    repos_command,
+    addrepo_command,
+    removerepo_command,
+)
+from bot.commands.insights import (
+    insights_command,
+    trends_command,
+    why_command,
+    stats_command,
+)
 from scheduler.cron import post_scheduler
 from bot.approval import generate_scheduled_post
 from bot.config import ConfigStore
@@ -124,6 +135,17 @@ def main() -> None:
     application.add_handler(CommandHandler("authstatus", authstatus_command))
     application.add_handler(CommandHandler("deauth", deauth_command))
 
+    # Repository management commands (Agent Phase 4)
+    application.add_handler(CommandHandler("repos", repos_command))
+    application.add_handler(CommandHandler("addrepo", addrepo_command))
+    application.add_handler(CommandHandler("removerepo", removerepo_command))
+
+    # Agent insight commands (Agent Phase 4)
+    application.add_handler(CommandHandler("insights", insights_command))
+    application.add_handler(CommandHandler("trends", trends_command))
+    application.add_handler(CommandHandler("why", why_command))
+    application.add_handler(CommandHandler("stats", stats_command))
+
     # Message handler (for approvals and other text)
     application.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
@@ -136,9 +158,15 @@ def main() -> None:
     print("Bot is running! Press Ctrl+C to stop.")
     print("\nAvailable commands:")
     print("  /start       - Welcome message")
-    print("  /connect     - Connect GitHub repo")
+    print("  /addrepo     - Add GitHub repo (up to 5)")
+    print("  /repos       - List repositories")
+    print("  /removerepo  - Remove a repository")
     print("  /time        - Set posting time")
-    print("  /generate    - Generate a post")
+    print("  /generate    - Generate a post (with AI agent)")
+    print("  /trends      - View current trends")
+    print("  /insights    - View content insights")
+    print("  /why         - Explain last post")
+    print("  /stats       - Input post metrics manually")
     print("  /refresh     - Re-index repository")
     print("  /auth        - Connect LinkedIn")
     print("  /authstatus  - Check LinkedIn status")

@@ -1,3 +1,4 @@
+# Core dependencies
 langchain>=0.1.0
 langchain-openai>=0.0.5
 langchain-community>=0.0.20
@@ -9,3 +10,7 @@ python-dotenv>=1.0.0
 apscheduler>=3.10.0
 requests>=2.31.0
 tiktoken>=0.5.0
+
+# Phase 4: AI Agent dependencies
+tweepy>=4.14.0              # Twitter API for trends
+langgraph>=0.0.20           # Agent orchestration

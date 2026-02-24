@@ -143,3 +143,130 @@ class RepoLoader:
                     files.append(file_path)
 
         return files
+
+    def clone_or_pull(self, github_url: str) -> Path:
+        """Alias for load() - clone or update a repo."""
+        return self.load(github_url)
+
+    def get_recent_commits(self, github_url: str, days: int = 7) -> list[dict]:
+        """
+        Get recent commits from the repository.
+
+        Args:
+            github_url: GitHub repository URL
+            days: Number of days to look back
+
+        Returns:
+            List of commit dicts with 'hash', 'message', 'author', 'date'
+        """
+        repo_path = self._get_repo_path(github_url)
+
+        if not repo_path.exists():
+            return []
+
+        try:
+            repo = Repo(repo_path)
+            commits = []
+
+            for commit in repo.iter_commits(max_count=20):
+                commits.append({
+                    "hash": commit.hexsha[:7],
+                    "message": commit.message.strip(),
+                    "author": str(commit.author),
+                    "date": commit.committed_datetime.isoformat(),
+                    "files_changed": len(commit.stats.files)
+                })
+
+            return commits
+
+        except Exception as e:
+            print(f"Error getting commits: {e}")
+            return []
+
+    def get_repo_stats(self, github_url: str) -> dict:
+        """
+        Get statistics about a repository.
+
+        Args:
+            github_url: GitHub repository URL
+
+        Returns:
+            Dict with file_count, has_readme, has_tests, languages
+        """
+        repo_path = self._get_repo_path(github_url)
+
+        if not repo_path.exists():
+            return {}
+
+        files = self.get_file_list(github_url)
+
+        # Count by extension
+        extensions = {}
+        for f in files:
+            ext = f.suffix.lower()
+            extensions[ext] = extensions.get(ext, 0) + 1
+
+        # Check for common files
+        all_files = [f.name.lower() for f in repo_path.rglob("*") if f.is_file()]
+
+        return {
+            "file_count": len(files),
+            "has_readme": any(f.startswith("readme") for f in all_files),
+            "has_tests": any("test" in f for f in all_files),
+            "has_docs": (repo_path / "docs").exists(),
+            "languages": extensions
+        }
+
+    def get_interesting_files(self, github_url: str, limit: int = 5) -> list[str]:
+        """
+        Get a list of potentially interesting files for content.
+
+        Prioritizes:
+        - Main entry points (main.py, index.js, etc.)
+        - API routes
+        - Core modules
+
+        Args:
+            github_url: GitHub repository URL
+            limit: Max files to return
+
+        Returns:
+            List of relative file paths
+        """
+        repo_path = self._get_repo_path(github_url)
+
+        if not repo_path.exists():
+            return []
+
+        files = self.get_file_list(github_url)
+
+        # Score files by interestingness
+        scored_files = []
+        interesting_patterns = [
+            "main", "index", "app", "server", "api",
+            "routes", "handler", "controller", "service",
+            "core", "engine", "utils", "helpers"
+        ]
+
+        for f in files:
+            score = 0
+            name_lower = f.stem.lower()
+
+            # Check for interesting patterns
+            for pattern in interesting_patterns:
+                if pattern in name_lower:
+                    score += 10
+
+            # Prefer shorter paths (likely more important)
+            depth = len(f.relative_to(repo_path).parts)
+            score -= depth * 2
+
+            # Prefer certain extensions
+            if f.suffix in [".py", ".ts", ".js"]:
+                score += 5
+
+            scored_files.append((str(f.relative_to(repo_path)), score))
+
+        # Sort by score and return top files
+        scored_files.sort(key=lambda x: x[1], reverse=True)
+        return [f[0] for f in scored_files[:limit]]

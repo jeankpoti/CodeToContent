@@ -27,25 +27,30 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     welcome_message = f"""
 *Welcome to LinkedIn AI Content Agent!*
 
-Hey {first_name}! I help you create engaging LinkedIn posts from your GitHub repositories.
+Hey {first_name}! I'm an AI agent that creates engaging LinkedIn posts from your GitHub repositories.
 
 *Quick Start:*
-1️⃣ Connect your repo: `/connect https://github.com/user/repo`
+1️⃣ Add your repos: `/addrepo https://github.com/user/repo`
 2️⃣ Set posting time: `/time 09:00`
 3️⃣ Generate a post: `/generate`
 
 *Commands:*
-• `/connect <url>` - Connect a GitHub repo
-• `/disconnect` - Remove connected repo
-• `/time <HH:MM>` - Set daily posting time
-• `/cleartime` - Disable daily posts
+• `/addrepo <url>` - Add a GitHub repo (up to 5)
+• `/repos` - List connected repos
 • `/generate` - Generate a post now
-• `/refresh` - Re-index your repository
-• `/status` - View your configuration
-• `/help` - Show this help message
+• `/trends` - View current dev trends
+• `/insights` - View content insights
+• `/stats` - Input post engagement
+• `/why` - Explain last post
+• `/help` - Show all commands
 
 *How it works:*
-I analyze your code and recent commits to write authentic LinkedIn posts about your work. You approve each post before it goes live.
+1. I fetch trending developer topics from HackerNews
+2. I analyze your repos to find matching code
+3. I check what content has performed best for you
+4. I generate an optimized post connecting trends to your code
+5. You approve, and I post to LinkedIn
+6. I learn from engagement to improve over time
 
 Let's get started!
     """
@@ -65,32 +70,43 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     help_message = """
 *LinkedIn AI Content Agent - Help*
 
-*Setup Commands:*
-• `/connect <url>` - Connect a public GitHub repo
-• `/disconnect` - Remove connected repo
+*How It Works:*
+I'm a ReAct AI agent that autonomously:
+1. Fetches trends from HackerNews (free!)
+2. Analyzes your repos for matching content
+3. Learns what posts perform best for you
+4. Generates optimized LinkedIn posts
+
+*Repository Commands:*
+• `/addrepo <url>` - Add a GitHub repo (up to 5)
+• `/repos` - List connected repositories
+• `/removerepo <url>` - Remove a repository
+• `/refresh` - Re-index all repositories
+
+*Scheduling:*
 • `/time <HH:MM>` - Set daily post time (24h format)
 • `/cleartime` - Disable automatic daily posts
 
-*Content Commands:*
-• `/generate` - Generate a LinkedIn post now
-• `/refresh` - Re-index your repository
+*Content Generation:*
+• `/generate` - Generate a post (agent picks best repo + trend)
+• `/trends` - View current developer trends
+• `/insights` - See what content performs best
+• `/why` - Explain the agent's choices
+• `/stats <likes> <comments>` - Input post metrics
 
-*Info Commands:*
+*LinkedIn:*
+• `/auth` - Connect your LinkedIn account
+• `/authstatus` - Check LinkedIn connection
+
+*Info:*
 • `/status` - View your current configuration
 • `/help` - Show this help message
 
 *Approving Posts:*
-When I send you a draft, reply with any of these to publish:
-• `post` • `yes` • `go` • `ship` • `publish` • `send`
+Reply with: `post` • `yes` • `go` • `ship`
 
-*Tips:*
-• Posts are based on your recent commits when available
-• If no recent commits, I'll highlight interesting code
-• Each post includes relevant code snippets
-• Posts adapt their length to the content
-
-*Questions or issues?*
-Check out the project: github.com/your-repo/linkedin-ai-agent
+*Learning System:*
+After posting, use `/stats 50 10` to report engagement (50 likes, 10 comments). The agent learns which topics, styles, and repos perform best for you!
     """
 
     await update.message.reply_text(

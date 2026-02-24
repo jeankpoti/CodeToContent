@@ -136,6 +136,175 @@ python src/main.py --repo https://github.com/user/repo
 
 **Deliverable:** Complete automated flow from repo to LinkedIn
 
+### Phase 4: True AI Agent Architecture
+
+**Goal:** Transform RAG pipeline into autonomous ReAct agent with decision-making capabilities
+
+**Agent Capabilities:**
+1. **Multi-Repo Selection** - Analyze 1-5 repos and decide which has best content today
+2. **Trend Research** - Fetch trending topics from Twitter/X + HackerNews, match to code
+3. **Engagement Learning** - Track LinkedIn metrics, learn what performs best, adapt strategy
+
+**Architecture:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CONTENT STRATEGIST AGENT                  │
+│                    (LangChain ReAct Agent)                   │
+├─────────────────────────────────────────────────────────────┤
+│  REASONING LOOP:                                            │
+│  1. "What trends are hot today?" → fetch_trends tool        │
+│  2. "Which of my repos matches?" → analyze_repos tool       │
+│  3. "What performed well before?" → get_history tool        │
+│  4. "Generate optimal post" → generate_post tool            │
+│  5. "Track this for learning" → log_post tool               │
+└─────────────────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+    ┌──────────┐       ┌──────────┐       ┌──────────┐
+    │  TOOLS   │       │  MEMORY  │       │  SOURCES │
+    ├──────────┤       ├──────────┤       ├──────────┤
+    │ search   │       │ SQLite   │       │ Twitter  │
+    │ analyze  │       │ - posts  │       │ HackerN. │
+    │ compare  │       │ - metrics│       │ GitHub   │
+    │ generate │       │ - insights       │ LinkedIn │
+    │ post     │       └──────────┘       └──────────┘
+    └──────────┘
+```
+
+**Agent Tools:**
+
+| Tool | Purpose | Input | Output |
+|------|---------|-------|--------|
+| `fetch_trends` | Get trending topics | source (twitter/hn) | List of trends with scores |
+| `list_repos` | Get user's connected repos | chat_id | List of repo URLs |
+| `analyze_repo` | Deep analysis of one repo | repo_url | Activity score, recent commits, interesting code |
+| `compare_repos` | Rank repos by content potential | repo_urls[] | Ranked list with reasons |
+| `match_trends` | Find code matching a trend | trend, repo_url | Relevant code snippets |
+| `search_code` | Semantic search in repo | query, repo_url | Code chunks |
+| `get_post_history` | Past posts & performance | chat_id, days | Posts with engagement metrics |
+| `get_insights` | What content works best | chat_id | Learned patterns |
+| `generate_post` | Create LinkedIn post | context, style | Post text |
+| `post_to_linkedin` | Publish post | text, chat_id | Post URL |
+
+**Memory Schema (SQLite):**
+
+```sql
+-- Track all posts
+CREATE TABLE posts (
+    id TEXT PRIMARY KEY,
+    chat_id TEXT,
+    repo_url TEXT,
+    content TEXT,
+    trend_matched TEXT,
+    linkedin_post_id TEXT,
+    created_at TIMESTAMP,
+    posted_at TIMESTAMP
+);
+
+-- Track engagement metrics
+CREATE TABLE metrics (
+    post_id TEXT PRIMARY KEY,
+    likes INTEGER DEFAULT 0,
+    comments INTEGER DEFAULT 0,
+    shares INTEGER DEFAULT 0,
+    impressions INTEGER DEFAULT 0,
+    fetched_at TIMESTAMP,
+    FOREIGN KEY (post_id) REFERENCES posts(id)
+);
+
+-- Store learned insights
+CREATE TABLE insights (
+    id TEXT PRIMARY KEY,
+    chat_id TEXT,
+    insight_type TEXT,  -- 'topic', 'style', 'time', 'repo'
+    insight_key TEXT,   -- e.g., 'authentication', 'short-form'
+    score REAL,         -- performance score
+    sample_size INTEGER,
+    updated_at TIMESTAMP
+);
+```
+
+**Files to create:**
+```
+src/
+├── agent/
+│   ├── __init__.py
+│   ├── strategist.py      # Main ReAct agent
+│   ├── tools/
+│   │   ├── __init__.py
+│   │   ├── trends.py      # fetch_trends (Twitter/HN)
+│   │   ├── repos.py       # list_repos, analyze_repo, compare_repos
+│   │   ├── matching.py    # match_trends, search_code
+│   │   ├── history.py     # get_post_history, get_insights
+│   │   └── publisher.py   # generate_post, post_to_linkedin
+│   └── memory/
+│       ├── __init__.py
+│       ├── database.py    # SQLite operations
+│       └── learner.py     # Insight extraction
+├── trends/
+│   ├── __init__.py
+│   ├── twitter.py         # Twitter/X API
+│   └── hackernews.py      # HackerNews API
+```
+
+**New Telegram Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `/repos` | List connected repositories |
+| `/addrepo <url>` | Add another repository |
+| `/removerepo <url>` | Remove a repository |
+| `/insights` | View what the agent has learned |
+| `/trends` | Show current trending topics |
+| `/why` | Explain why last post was chosen |
+
+**New Environment Variables:**
+```env
+# HackerNews: FREE, no API key needed!
+
+# Twitter (OPTIONAL - only if you want Twitter trends too)
+TWITTER_BEARER_TOKEN=your_twitter_bearer_token
+
+# LinkedIn Marketing API (for engagement metrics)
+LINKEDIN_MARKETING_ACCESS_TOKEN=your_marketing_token
+```
+
+**New Dependencies:**
+```
+tweepy>=4.14.0          # Twitter API
+```
+
+**Agent Reasoning Example:**
+```
+User triggers /generate at 9:00 AM
+
+Agent thinks:
+1. "Let me check what's trending today"
+   → Calls fetch_trends("hackernews")
+   → Returns: ["Rust memory safety", "AI code review", "WebAssembly"]
+
+2. "What repos does this user have?"
+   → Calls list_repos(chat_id)
+   → Returns: ["repo-a", "repo-b", "repo-c"]
+
+3. "Which repo matches these trends?"
+   → Calls match_trends("AI code review", repos)
+   → Returns: repo-b has code review automation
+
+4. "What content style worked before?"
+   → Calls get_insights(chat_id)
+   → Returns: "short tips with code snippets get 2x engagement"
+
+5. "Generate the post"
+   → Calls generate_post(context=repo-b, style="short-tip", trend="AI code review")
+   → Returns: Draft post
+
+Agent returns draft to user via Telegram
+```
+
+**Deliverable:** Intelligent agent that autonomously decides content strategy
+
 ---
 
 ## Verification Plan
@@ -161,15 +330,58 @@ python src/main.py --repo https://github.com/user/repo
 4. Test cron triggers at correct time
 5. End-to-end: Connect repo → Wait for cron → Approve → Verify LinkedIn post
 
+### Phase 4 Testing
+1. Memory Layer
+   ```bash
+   python -c "from src.agent.memory.database import Database; db = Database(); db.init()"
+   # Verify tables created
+   ```
+
+2. Trend Fetching
+   ```bash
+   python -c "from src.trends.hackernews import get_trends; print(get_trends())"
+   # Should return trending topics
+   ```
+
+3. Agent Reasoning
+   ```bash
+   python src/main.py --agent --repo https://github.com/user/repo --verbose
+   # Watch agent reasoning steps in output
+   ```
+
+4. Full Agent Flow
+   - `/addrepo` two repos via Telegram
+   - `/generate` and verify agent picks best repo
+   - Check `/why` explains the decision
+   - Post and wait 24 hours
+   - `/insights` to see learned patterns
+
+5. Engagement Learning
+   - Post multiple times over a week
+   - Verify metrics are fetched from LinkedIn
+   - Check that insights table is populated
+   - Verify agent adapts recommendations
+
 ---
 
-## Future Enhancements (Post-MVP)
+## Risk Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Twitter API costs | HackerNews is FREE (no API key), Twitter is optional |
+| LinkedIn API approval | Provide manual `/stats <likes> <comments>` fallback |
+| Agent loops/hangs | Set max iterations (10), timeout (60s) |
+| Poor trend matching | Fallback to current RAG behavior if no match |
+
+---
+
+## Future Enhancements (Post-Phase 4)
 
 - WhatsApp integration
 - Private repo support (GitHub OAuth)
-- Multiple repos per user
 - Post scheduling (queue posts)
 - Edit post via Telegram reply
-- Analytics (track post performance)
 - Multiple LLM support (Claude, Gemma)
 - Web dashboard
+- A/B testing for post styles
+- Competitor analysis (what's working for others)

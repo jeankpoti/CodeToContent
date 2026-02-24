@@ -174,6 +174,54 @@ class LinkedInPoster:
         except:
             return False
 
+    def get_post_metrics(self, post_id: str, access_token: str = None) -> Optional[dict]:
+        """
+        Get engagement metrics for a LinkedIn post.
+
+        Note: This requires LinkedIn Marketing API access which needs
+        special approval. As a fallback, use manual /stats input.
+
+        Args:
+            post_id: LinkedIn post ID
+            access_token: Marketing API access token
+
+        Returns:
+            Dict with likes, comments, shares, impressions or None
+        """
+        # Check for marketing API token
+        marketing_token = access_token or os.getenv("LINKEDIN_MARKETING_ACCESS_TOKEN")
+
+        if not marketing_token:
+            # Marketing API not configured - this is expected for most users
+            return None
+
+        try:
+            # LinkedIn Marketing API for social actions
+            # Note: This endpoint requires Marketing Developer Platform access
+            response = requests.get(
+                f"https://api.linkedin.com/v2/socialActions/{post_id}",
+                headers={
+                    "Authorization": f"Bearer {marketing_token}",
+                    "LinkedIn-Version": "202401"
+                }
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                return {
+                    "likes": data.get("likesSummary", {}).get("totalLikes", 0),
+                    "comments": data.get("commentsSummary", {}).get("totalComments", 0),
+                    "shares": data.get("sharesSummary", {}).get("totalShares", 0),
+                    "impressions": 0  # Impressions require separate analytics API
+                }
+
+            # If marketing API fails, return None (use manual input)
+            return None
+
+        except Exception as e:
+            print(f"Error fetching post metrics: {e}")
+            return None
+
 
 # Singleton instance
 linkedin_poster = LinkedInPoster()

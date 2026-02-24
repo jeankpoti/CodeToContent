@@ -21,7 +21,8 @@ class UserConfig:
     linkedin_token: Optional[str] = None
     linkedin_token_expiry: Optional[str] = None
     preferred_time: Optional[str] = None  # HH:MM format
-    timezone_offset: Optional[int] = None  # Offset from UTC in seconds
+    timezone: Optional[str] = None  # IANA timezone name (e.g., "Africa/Lagos", "America/New_York")
+    timezone_offset: Optional[int] = None  # Deprecated - use timezone instead
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
